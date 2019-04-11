@@ -8,16 +8,18 @@
 #include "MyNewTask.h"
 #include "fsl_os_abstraction.h"
 #define gMyTaskPriority_c 3
-#define gMyTaskStackSize_ 400
-/*TimerID */
-osaEventId_t mMyEvents;
-/* Handler */
-tmrTimerID_t gMyTaskHandler_ID;
-/*current state LED*/
-static uint8_t ledsState = 0;
+#define gMyTaskStackSize_c 400
 
-OSA_TASK_DEFINE(My_Task, gMyTaskPriority_c, 1, gMyTaskStackSize_, FALSE);
-static tmrTimerID_t myTimerID;
+osaEventId_t mMyEvents;
+/* Global Variable to store our TimerID */
+tmrTimerID_t myTimerID = gTmrInvalidTimerID_c;
+/** Handler  ID for task **/
+osaTaskId_t gMyTaskHandler_ID;
+/** Local variable to store the current state of the LEDs **/
+static uint8_t ledsState = 0;
+/* OSA Task Definition*/
+OSA_TASK_DEFINE(My_Task, gMyTaskPriority_c, 1, gMyTaskStackSize_c, FALSE);
+//static tmrTimerID_t myTimerID;
 
 /* Main custom task */
 void My_Task(osaTaskParam_t argument)
@@ -46,7 +48,8 @@ void My_Task(osaTaskParam_t argument)
 			TurnOffLeds(); /* Ensure all LEDs are turned off */
 			break;
 		case gMyNewTaskEvent2_c: /* Event called from myTaskTimerCallback */
-			if(!ledsState) {
+			if(!ledsState)
+			{
 				TurnOnLeds();
 				ledsState = 1;
 			}
