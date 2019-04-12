@@ -368,6 +368,7 @@ void AppThread(uint32_t argument)
                       
                       gState = stateListen;
                       OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c);
+                	  MyTaskTimer_Start(); /*Start LED flashing with your task*/
                   }
               }
           }
@@ -779,6 +780,7 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
     /* Send the Associate Response to the MLME. */
     if( gSuccess_c == NWK_MLME_SapHandler( pMsg, macInstance ) )
     {
+      MyTaskTimer_Stop();/* STOP Timer from MY NEW TASK*/
       Serial_Print( interfaceId,"Done\n\r", gAllowToBlock_d );
       return errorNoError;
     }

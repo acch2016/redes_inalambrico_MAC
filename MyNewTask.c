@@ -84,6 +84,10 @@ static void myTaskTimerCallback(void*param)
 	OSA_EventSet(mMyEvents, gMyNewTaskEvent2_c);
 }
 
+void MyTaskTimer_Start(void)
+{
+	OSA_EventSet(mMyEvents, gMyNewTaskEvent1_c);
+}
 /* Public function to send an event to stop the timer */
 void MyTaskTimer_Stop(void)
 {

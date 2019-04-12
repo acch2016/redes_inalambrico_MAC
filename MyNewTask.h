@@ -30,7 +30,7 @@ void MyTaskTimer_Stop(void);
 void MyTask_Init(void);
 
 
-//void My_Task(osaTaskParam_t argument);
-
+void My_Task(osaTaskParam_t argument);
+static void myTaskTimerCallback(void*param);
 
 #endif /* MYNEWTASK_H_ */
