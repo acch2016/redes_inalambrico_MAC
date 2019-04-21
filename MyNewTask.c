@@ -6,9 +6,10 @@
  */
 /**/
 #include "MyNewTask.h"
+
 #define gMyTaskPriority_c 3
 #define gMyTaskStackSize_c 400
-
+static uint8_t interfaceId;
 osaEventId_t mMyEvents;
 /* Global Variable to store our TimerID */
 tmrTimerID_t myTimerID = gTmrInvalidTimerID_c;
@@ -25,6 +26,7 @@ void My_Task(osaTaskParam_t argument)
 {
 	osaEventFlags_t customEvent;
 	myTimerID = TMR_AllocateTimer();
+	uint8_t counti[] = "\rCounter: ";
 
 	while(1)
 	{
@@ -54,18 +56,23 @@ void My_Task(osaTaskParam_t argument)
 //				TurnOffLeds();
 				Led4Off();
 				Led1On();
+				App_TransmitData(ledsState);
+//				Serial_PrintDec(interfaceId, sizeof(counti));
 				break;
 			case 2:
 				Led1Off();
 				Led2On();
+				App_TransmitData(ledsState);
 				break;
 			case 3:
 				Led2Off();
 				Led3On();
+				App_TransmitData(ledsState);
 				break;
 			case 4:
 				Led3Off();
 				Led4On();
+				App_TransmitData(ledsState);
 				ledsState = 0;
 				break;
 			default:
@@ -76,6 +83,15 @@ void My_Task(osaTaskParam_t argument)
 				ledsState = 0;
 				TurnOffLeds();
 				TMR_StopTimer(myTimerID);
+				break;
+		case gMyNewTaskEvent4_c:
+				break;
+		case gMyNewTaskEvent5_c:
+				break;
+		case gMyNewTaskEvent6_c:
+				break;
+		case gMyNewTaskEvent7_c:
+
 				break;
 		default:
 				break;
@@ -92,7 +108,7 @@ void MyTask_Init(void)
 }
 
 /* This is the function called by the Timer each time it expires */
-static void myTaskTimerCallback(void*param)
+void myTaskTimerCallback(void*param)
 {
 	OSA_EventSet(mMyEvents, gMyNewTaskEvent2_c);
 }
@@ -106,6 +122,7 @@ void MyTaskTimer_Stop(void)
 {
 	OSA_EventSet(mMyEvents, gMyNewTaskEvent3_c);
 }
+
 
 
 

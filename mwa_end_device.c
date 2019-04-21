@@ -149,6 +149,7 @@ static addrModeType_t mAddrMode;
 
 /* Data request packet for sending UART input to the coordinator */
 static nwkToMcpsMessage_t *mpPacket;
+static nwkToMcpsMessage_t *mpPacket2;
 
 /* The MSDU handle is a unique data packet identifier */
 static uint8_t mMsduHandle;
@@ -1149,6 +1150,62 @@ static void App_TransmitUartData(void)
     {
         OSA_EventSet(mAppEvent, gAppEvtRxFromUart_c);
     }
+}
+/*Send a Packet through the air*/
+void App_TransmitData(uint8_t ledsState)
+{
+	uint8_t count[] = "\rCounter: ";
+//	void *pledsState = &ledsState;
+//	void * aledState[] = {0};
+//	aledState[0] = &ledsState;
+    /* Use multi buffering for increased TX performance. It does not really
+    have any effect at low UART baud rates, but serves as an
+    example of how the throughput may be improved in a real-world
+    application where the data rate is of concern. */
+//    if( (mcPendingPackets < mDefaultValueOfMaxPendingDataPackets_c) && (mpPacket2 == NULL) )
+    if( (mpPacket2 == NULL) )
+    {
+        /* If the maximum number of pending data buffes is below maximum limit
+        and we do not have a data buffer already then allocate one. */
+        mpPacket2 = MSG_Alloc(sizeof(nwkToMcpsMessage_t) + gMaxPHYPacketSize_c);
+    }
+
+    if(mpPacket2 != NULL)
+    {
+        /* Create an MCPS-Data Request message containing the data. */
+        mpPacket2->msgType = gMcpsDataReq_c;
+        mpPacket2->msgData.dataReq.pMsdu = (uint8_t*)(&mpPacket2->msgData.dataReq.pMsdu) +
+                                          sizeof(mpPacket2->msgData.dataReq.pMsdu);
+//        Serial_Read(interfaceId, mpPacket->msgData.dataReq.pMsdu, count, &count);
+        FLib_MemCpy(mpPacket2->msgData.dataReq.pMsdu, count, sizeof(count));
+//        FLib_MemCpy(mpPacket2->msgData.dataReq.pMsdu[sizeof(count)-1], aledState[0], sizeof(ledsState));
+        mpPacket2->msgData.dataReq.pMsdu[sizeof(count)-1] = ledsState + '0';
+        /* Create the header using coordinator information gained during
+        the scan procedure. Also use the short address we were assigned
+        by the coordinator during association. */
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.dstAddr, &mCoordInfo.coordAddress, 8);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.srcAddr, &maMyAddress, 8);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.dstPanId, &mCoordInfo.coordPanId, 2);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.srcPanId, &mCoordInfo.coordPanId, 2);
+        mpPacket2->msgData.dataReq.dstAddrMode = mCoordInfo.coordAddrMode;
+        mpPacket2->msgData.dataReq.srcAddrMode = mAddrMode;
+        mpPacket2->msgData.dataReq.msduLength = sizeof(count)+1;
+        /* Request MAC level acknowledgement of the data packet */
+        mpPacket2->msgData.dataReq.txOptions = gMacTxOptionsAck_c;
+        /* Give the data packet a handle. The handle is
+        returned in the MCPS-Data Confirm message. */
+        mpPacket2->msgData.dataReq.msduHandle = mMsduHandle++;
+        /* Don't use security */
+        mpPacket2->msgData.dataReq.securityLevel = gMacSecurityNone_c;
+
+        /* Send the Data Request to the MCPS */
+        (void)NWK_MCPS_SapHandler(mpPacket2, macInstance);
+
+        /* Prepare for another data buffer */
+        mpPacket2 = NULL;
+//        mcPendingPackets++;
+    }
+
 }
 
 /******************************************************************************
