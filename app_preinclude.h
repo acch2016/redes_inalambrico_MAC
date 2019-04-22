@@ -64,7 +64,7 @@
 #define APP_DCDC_MODE                   gDCDC_Mode_Buck_c 
 #define gSerialMgrUseUart_c             1
 #define gSerialMgrRxBufSize_c           256
-#define gKBD_KeysCount_c                2
+#define gKBD_KeysCount_c                4
 #define gLEDsOnTargetBoardCnt_c         4
 #define mEnterLowPowerWhenIdle_c        1
 #define cPWR_DeepSleepMode              3

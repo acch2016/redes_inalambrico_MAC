@@ -16,10 +16,9 @@ tmrTimerID_t myTimerID = gTmrInvalidTimerID_c;
 /** Handler  ID for task **/
 osaTaskId_t gMyTaskHandler_ID;
 /** Local variable to store the current state of the LEDs **/
-static uint8_t ledsState = 0;
+static uint8_t ledsState = 1;
 /* OSA Task Definition*/
 OSA_TASK_DEFINE(My_Task, gMyTaskPriority_c, 1, gMyTaskStackSize_c, FALSE);
-
 
 /* Main custom task */
 void My_Task(osaTaskParam_t argument)
@@ -49,28 +48,30 @@ void My_Task(osaTaskParam_t argument)
 			TurnOffLeds(); /* Ensure all LEDs are turned off */
 			break;
 		case gMyNewTaskEvent2_c: /* Event called from myTaskTimerCallback */
-			ledsState ++;
 			switch(ledsState)
 			{
 			case 1:
-//				TurnOffLeds();
-				Led4Off();
+				TurnOffLeds();
+//				Led4Off();
 				Led1On();
 				App_TransmitData(ledsState);
 //				Serial_PrintDec(interfaceId, sizeof(counti));
 				break;
 			case 2:
-				Led1Off();
+				TurnOffLeds();
+//				Led1Off();
 				Led2On();
 				App_TransmitData(ledsState);
 				break;
 			case 3:
-				Led2Off();
+				TurnOffLeds();
+//				Led2Off();
 				Led3On();
 				App_TransmitData(ledsState);
 				break;
 			case 4:
-				Led3Off();
+				TurnOffLeds();
+//				Led3Off();
 				Led4On();
 				App_TransmitData(ledsState);
 				ledsState = 0;
@@ -78,20 +79,65 @@ void My_Task(osaTaskParam_t argument)
 			default:
 				break;
 			}
+			ledsState ++;
 			break;
 		case gMyNewTaskEvent3_c: /* Event to stop the timer */
 				ledsState = 0;
 				TurnOffLeds();
 				TMR_StopTimer(myTimerID);
 				break;
+
 		case gMyNewTaskEvent4_c:
+				TMR_StopTimer(myTimerID);
+				ledsState = 1;
+				TurnOffLeds();
+				Led1On();
+				App_TransmitData(ledsState);
+				ledsState = 2;
+				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
+						1000, /* Timer's Timeout */ //TODO 3000
+						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
+						NULL
+						);
 				break;
 		case gMyNewTaskEvent5_c:
+				TMR_StopTimer(myTimerID);
+				ledsState = 2;
+				TurnOffLeds();
+				Led2On();
+				App_TransmitData(ledsState);
+				ledsState = 3;
+				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
+						1000, /* Timer's Timeout */ //TODO 3000
+						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
+						NULL
+						);
 				break;
 		case gMyNewTaskEvent6_c:
+				TMR_StopTimer(myTimerID);
+				ledsState = 3;
+				TurnOffLeds();
+				Led3On();
+				App_TransmitData(ledsState);
+				ledsState = 4;
+				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
+						1000, /* Timer's Timeout */ //TODO 3000
+						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
+						NULL
+						);
 				break;
 		case gMyNewTaskEvent7_c:
-
+				TMR_StopTimer(myTimerID);
+				ledsState = 4;
+				TurnOffLeds();
+				Led4On();
+				App_TransmitData(ledsState);
+				ledsState = 1;
+				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
+						1000, /* Timer's Timeout */ //TODO 3000
+						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
+						NULL
+						);
 				break;
 		default:
 				break;
@@ -124,5 +170,9 @@ void MyTaskTimer_Stop(void)
 }
 
 
+osaEventId_t get_myEvents(void)
+{
+	return  mMyEvents;
+}
 
 

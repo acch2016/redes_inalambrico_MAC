@@ -1265,15 +1265,29 @@ static void App_HandleKeys
 #if gKBD_KeysCount_c > 0 
     switch ( events ) 
     { 
+    case gKBD_EventSW1_c:
+    	OSA_EventSet(get_myEvents(), gMyNewTaskEvent7_c);
+    	break;
+    case gKBD_EventSW2_c:
+    	OSA_EventSet(get_myEvents(), gMyNewTaskEvent6_c);
+    	break;
+    case gKBD_EventSW3_c:
+    	OSA_EventSet(get_myEvents(), gMyNewTaskEvent5_c);
+    	break;
+    case gKBD_EventSW4_c:
+    	OSA_EventSet(get_myEvents(), gMyNewTaskEvent4_c);
+    	break;
     case gKBD_EventLongSW1_c:
         OSA_EventSet(mAppEvent, gAppEvtPressedRestoreNvmBut_c);
+        break;
     case gKBD_EventLongSW2_c:
+    	break;
     case gKBD_EventLongSW3_c:
+    	break;
     case gKBD_EventLongSW4_c:
-    case gKBD_EventSW1_c:
-    case gKBD_EventSW2_c:
-    case gKBD_EventSW3_c:
-    case gKBD_EventSW4_c:
+    	break;
+    default:
+    	break;
 #if gTsiSupported_d
     case gKBD_EventSW5_c:    
     case gKBD_EventSW6_c:    
@@ -1282,12 +1296,12 @@ static void App_HandleKeys
     case gKBD_EventLongSW5_c:
     case gKBD_EventLongSW6_c:       
 #endif
+    }
         if(gState == stateInit)
         {
             LED_StopFlashingAllLeds();
             OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c);
         }
-    }
 #endif
 }
 

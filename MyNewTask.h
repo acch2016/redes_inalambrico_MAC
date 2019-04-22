@@ -40,6 +40,6 @@ void MyTask_Init(void);
 void My_Task(osaTaskParam_t argument);
 void myTaskTimerCallback(void*param);
 //static void App_TransmitData(void);
-
+osaEventId_t get_myEvents(void);
 
 #endif /* MYNEWTASK_H_ */
