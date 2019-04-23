@@ -142,6 +142,18 @@ static instanceId_t   macInstance;
 static uint8_t        interfaceId;
 osaEventId_t          mAppEvent;
 
+#define NUMBER_OF_NODES 5
+typedef struct store
+{
+	uint16_t shortAddres;
+	uint64_t extendedAddres;
+	uint8_t rxOnWhenIdle; //(true or false)
+	uint8_t deviceType; //(FFD or RFD)
+} node_struct_t;
+
+static node_struct_t nodo[NUMBER_OF_NODES] = {0};
+
+volatile uint8_t counter = 0;
 /************************************************************************************
 *************************************************************************************
 * Public memory declarations
@@ -777,6 +789,26 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
     FLib_MemCpy(&mDeviceShortAddress, &pAssocRes->assocShortAddress, 2);
     FLib_MemCpy(&mDeviceLongAddress,  &pAssocRes->deviceAddress,     8);
     
+    counter++;
+		if (NUMBER_OF_NODES < counter)
+		{
+			counter = 0;
+		}
+		else
+		{
+			nodo[counter].shortAddres = mDeviceShortAddress;
+			nodo[counter].extendedAddres = mDeviceLongAddress;
+			Serial_Print(interfaceId, " MAC Address: ", gAllowToBlock_d);
+			Serial_PrintHex(interfaceId,
+					(uint8_t*) &(nodo[counter].extendedAddres), 8, 0);
+			Serial_Print(interfaceId, "\n\rShort Address: ", gAllowToBlock_d);
+			Serial_PrintHex(interfaceId,
+					(uint8_t*) &(nodo[counter].shortAddres), 2, 0);
+		}
+		Serial_Print(interfaceId, "\n\r# de nodo: ", gAllowToBlock_d);
+		Serial_PrintDec(interfaceId, counter);
+		Serial_Print(interfaceId, "\n\r", gAllowToBlock_d);
+
     /* Send the Associate Response to the MLME. */
     if( gSuccess_c == NWK_MLME_SapHandler( pMsg, macInstance ) )
     {
@@ -851,6 +883,36 @@ static void App_HandleMcpsInput(mcpsToNwkMessage_t *pMsgIn, uint8_t appInstance)
        or application layer when data has been received. We simply
        copy the received data to the UART. */
     Serial_SyncWrite( interfaceId,pMsgIn->msgData.dataInd.pMsdu, pMsgIn->msgData.dataInd.msduLength );
+    Serial_Print(interfaceId, "  MAC Address: " , gAllowToBlock_d);
+    Serial_PrintHex(interfaceId, (uint8_t*)&mDeviceLongAddress, 8, 0);
+    Serial_Print(interfaceId, "  Short Address: " , gAllowToBlock_d);
+    Serial_PrintHex(interfaceId, (uint8_t*)&(pMsgIn->msgData.dataInd.srcAddr), 2, 0);
+    Serial_Print(interfaceId, "  LQI: " , gAllowToBlock_d);
+    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.mpduLinkQuality);
+    Serial_Print(interfaceId, "  Payload Length: " , gAllowToBlock_d);
+    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.msduLength);
+    //    Serial_Print(interfaceId, "\n\r" , gAllowToBlock_d);
+    //    Serial_SyncWrite( interfaceId,&pMsgIn->msgData.dataInd.pMsdu[10], 1 );
+    if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x31)
+    {
+    	TurnOffLeds();
+    	Led1On();
+    }
+    if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x32)
+    {
+    	TurnOffLeds();
+    	Led2On();
+    }
+    if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x33)
+    {
+    	TurnOffLeds();
+    	Led3On();
+    }
+    if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x34)
+    {
+    	TurnOffLeds();
+    	Led4On();
+    }
     break;
     
   default:
