@@ -60,13 +60,13 @@
   #define mDefaultValueOfChannel_c (0x80000)
 #endif
 
-#define mMacExtendedAddress_c    (0x1111111111111111)
+#define mMacExtendedAddress_c    (0x1111111111111111) //TODO Direccion MAC: Diferentes todos
 
 /* Set the Coordinator short address */ 
-#define mDefaultValueOfShortAddress_c     0xCAFE
+#define mDefaultValueOfShortAddress_c     0x0000 //0xCAFE
 
 /* Set the Coordinator PanID */ 
-#define mDefaultValueOfPanId_c            0xBEEF
+#define mDefaultValueOfPanId_c            0x5555 //0xBEEF
 
 /* Maximum number of outstanding packets */
 #define mDefaultValueOfMaxPendingDataPackets_c 2

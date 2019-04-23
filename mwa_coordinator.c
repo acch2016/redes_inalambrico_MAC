@@ -188,7 +188,7 @@ void main_task(uint32_t param)
         Phy_Init();
         RNG_Init(); /* RNG must be initialized after the PHY is Initialized */
         MAC_Init();
-        MyTask_Init();/* INIT MY NEW TASK *
+        MyTask_Init();/* INIT MY NEW TASK */
         /* Bind to MAC layer */
         macInstance = BindToMAC( (instanceId_t)0 );
         Mac_RegisterSapHandlers( MCPS_NWK_SapHandler, MLME_NWK_SapHandler, macInstance );

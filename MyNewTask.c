@@ -6,7 +6,7 @@
  */
 /**/
 #include "MyNewTask.h"
-#include "fsl_os_abstraction.h"
+//#include "fsl_os_abstraction.h"
 #define gMyTaskPriority_c 3
 #define gMyTaskStackSize_c 400
 
