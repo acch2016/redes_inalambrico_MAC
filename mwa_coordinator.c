@@ -145,15 +145,21 @@ osaEventId_t          mAppEvent;
 #define NUMBER_OF_NODES 5
 typedef struct store
 {
-	uint16_t shortAddres;
-	uint64_t extendedAddres;
+	uint16_t shortAddress;
+	uint64_t extendedAddress;
 	uint8_t rxOnWhenIdle; //(true or false)
 	uint8_t deviceType; //(FFD or RFD)
 } node_struct_t;
 
 static node_struct_t nodo[NUMBER_OF_NODES] = {0};
 
-volatile uint8_t counter = 0;
+volatile uint8_t counter = 0x0001;
+
+volatile uint8_t index_found = 0;
+
+volatile uint8_t flag_found = 0;
+
+volatile uint8_t higherNode = 0;
 /************************************************************************************
 *************************************************************************************
 * Public memory declarations
@@ -248,7 +254,7 @@ void App_init( void )
     
     /*signal app ready*/  
     LED_StartSerialFlash(LED1);
-    
+    Serial_Print(interfaceId, "\n\rCoordinator.\n\r", gAllowToBlock_d);
     Serial_Print(interfaceId, "\n\rPress any switch on board to start running the application.\n\r", gAllowToBlock_d);  
 }
 
@@ -756,28 +762,18 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
   pMsg = MSG_AllocType(mlmeMessage_t);
   if(pMsg != NULL)
   {
+//	  TODO necessary?
+//	if (NUMBER_OF_NODES < counter)
+//	{
+//		counter = 0x0001;
+//	}
+
     /* This is a MLME-ASSOCIATE.res command */
     pMsg->msgType = gMlmeAssociateRes_c;
 
     /* Create the Associate response message data. */
     pAssocRes = &pMsg->msgData.associateRes;
 
-    /* Assign a short address to the device. In this example we simply
-       choose 0x0001. Though, all devices and coordinators in a PAN must have
-       different short addresses. However, if a device do not want to use
-       short addresses at all in the PAN, a short address of 0xFFFE must
-       be assigned to it. */
-    if(pMsgIn->msgData.associateInd.capabilityInfo & gCapInfoAllocAddr_c)
-    {
-      /* Assign a unique short address less than 0xfffe if the device requests so. */
-      pAssocRes->assocShortAddress = 0x0001;
-    }
-    else
-    {
-      /* A short address of 0xfffe means that the device is granted access to
-         the PAN (Associate successful) but that long addressing is used.*/
-      pAssocRes->assocShortAddress = 0xFFFE;
-    }
     /* Get the 64 bit address of the device requesting association. */
     FLib_MemCpy(&pAssocRes->deviceAddress, &pMsgIn->msgData.associateInd.deviceAddress, 8);
     /* Association granted. May also be gPanAtCapacity_c or gPanAccessDenied_c. */
@@ -786,47 +782,80 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
     pAssocRes->securityLevel = gMacSecurityNone_c;
 
     /* Save device info. */
-    FLib_MemCpy(&mDeviceShortAddress, &pAssocRes->assocShortAddress, 2);
     FLib_MemCpy(&mDeviceLongAddress,  &pAssocRes->deviceAddress,     8);
+
+	for ( uint16_t i = 0x0000; i < NUMBER_OF_NODES; ++ i )
+	{
+		if ( nodo[i].extendedAddress == mDeviceLongAddress )
+		{
+			index_found = i+1;
+			flag_found = 1;
+		}
+	}
+    /* Assign a short address to the device. In this example we simply
+       choose 0x0001. Though, all devices and coordinators in a PAN must have
+       different short addresses. However, if a device do not want to use
+       short addresses at all in the PAN, a short address of 0xFFFE must
+       be assigned to it. */
+    if(pMsgIn->msgData.associateInd.capabilityInfo & gCapInfoAllocAddr_c)
+    {
+      if( 1 == flag_found ) /* Nodes that are already in the PIB */
+      {
+    	  pAssocRes->assocShortAddress = index_found;
+    	  flag_found = 0;
+      }
+      else /* Nodes that are NOT already in the PIB */
+      {
+    	  for ( uint8_t i = 0;  i < NUMBER_OF_NODES; ++ i )
+    	  {
+    		  if(nodo[i].shortAddress > higherNode)
+    		  {
+    			  higherNode = nodo[i].shortAddress;
+    		  }
+    	  }
+    	  /* Assign a unique short address less than 0xfffe if the device requests so. */
+    	  pAssocRes->assocShortAddress = higherNode +1;
+      }
+    }
+    else
+    {
+      /* A short address of 0xfffe means that the device is granted access to
+         the PAN (Associate successful) but that long addressing is used.*/
+      pAssocRes->assocShortAddress = 0xFFFE;
+    }
+    /* Save device info. */
+    FLib_MemCpy(&mDeviceShortAddress, &pAssocRes->assocShortAddress, 2);
     
-    counter++;
-		if (NUMBER_OF_NODES < counter)
-		{
-			counter = 0;
-		}
-		else
-		{
-			nodo[counter].shortAddres = mDeviceShortAddress;
-			nodo[counter].extendedAddres = mDeviceLongAddress;
-			Serial_Print(interfaceId, " MAC Address: ", gAllowToBlock_d);
-			Serial_PrintHex(interfaceId,
-					(uint8_t*) &(nodo[counter].extendedAddres), 8, 0);
-			Serial_Print(interfaceId, "\n\rShort Address: ", gAllowToBlock_d);
-			Serial_PrintHex(interfaceId,
-					(uint8_t*) &(nodo[counter].shortAddres), 2, 0);
-		}
-		Serial_Print(interfaceId, "\n\r# de nodo: ", gAllowToBlock_d);
-		Serial_PrintDec(interfaceId, counter);
-		Serial_Print(interfaceId, "\n\r", gAllowToBlock_d);
+	nodo[ mDeviceShortAddress -1].shortAddress = mDeviceShortAddress;
+	nodo[ mDeviceShortAddress -1].extendedAddress = mDeviceLongAddress;
+
+	Serial_Print(interfaceId, "\n\rLAST ASSOCIATED NODE  extended Addr: ", gAllowToBlock_d);
+	Serial_PrintHex(interfaceId, (uint8_t*) &mDeviceLongAddress, 8, 0);
+	Serial_Print(interfaceId, "  short Addr: ", gAllowToBlock_d);
+	Serial_PrintHex(interfaceId, (uint8_t*) &mDeviceShortAddress, 2, 0);
+	Serial_Print(interfaceId, "  node: ", gAllowToBlock_d);
+	Serial_PrintDec(interfaceId, higherNode);
+
+//    counter++; TODO necessary?
 
     /* Send the Associate Response to the MLME. */
     if( gSuccess_c == NWK_MLME_SapHandler( pMsg, macInstance ) )
     {
       MyTaskTimer_Stop();/* STOP Timer from MY NEW TASK*/
-      Serial_Print( interfaceId,"Done\n\r", gAllowToBlock_d );
+      Serial_Print( interfaceId,"\n\rDone\n\r", gAllowToBlock_d );
       return errorNoError;
     }
     else
     {
       /* One or more parameters in the message were invalid. */
-      Serial_Print( interfaceId,"Invalid parameter!\n\r", gAllowToBlock_d );
+      Serial_Print( interfaceId,"\n\rInvalid parameter!\n\r", gAllowToBlock_d );
       return errorInvalidParameter;
     }
   }
   else
   {
     /* Allocation of a message buffer failed. */
-    Serial_Print(interfaceId,"Message allocation failed!\n\r", gAllowToBlock_d);
+    Serial_Print(interfaceId,"\n\rMessage allocation failed!\n\r", gAllowToBlock_d);
     return errorAllocFailed;
   }
 }
@@ -847,13 +876,13 @@ static uint8_t App_HandleMlmeInput(nwkMessage_t *pMsg, uint8_t appInstance)
   /* Handle the incoming message. The type determines the sort of processing.*/
   switch(pMsg->msgType) {
   case gMlmeAssociateInd_c:
-    Serial_Print(interfaceId,"Received an MLME-Associate Indication from the MAC\n\r", gAllowToBlock_d);
+    Serial_Print(interfaceId,"\n\rReceived an MLME-Associate Indication from the MAC\n\r", gAllowToBlock_d);
     /* A device sent us an Associate Request. We must send back a response.  */
     return App_SendAssociateResponse(pMsg, appInstance);
     
   case gMlmeCommStatusInd_c:
     /* Sent by the MLME after the Association Response has been transmitted. */
-    Serial_Print(interfaceId,"Received an MLME-Comm-Status Indication from the MAC\n\r", gAllowToBlock_d);
+    Serial_Print(interfaceId,"\n\rReceived an MLME-Comm-Status Indication from the MAC\n\r", gAllowToBlock_d);
     break;
     
   default:
@@ -883,8 +912,8 @@ static void App_HandleMcpsInput(mcpsToNwkMessage_t *pMsgIn, uint8_t appInstance)
        or application layer when data has been received. We simply
        copy the received data to the UART. */
     Serial_SyncWrite( interfaceId,pMsgIn->msgData.dataInd.pMsdu, pMsgIn->msgData.dataInd.msduLength );
-    Serial_Print(interfaceId, "  MAC Address: " , gAllowToBlock_d);
-    Serial_PrintHex(interfaceId, (uint8_t*)&mDeviceLongAddress, 8, 0);
+//    Serial_Print(interfaceId, "  MAC Address: " , gAllowToBlock_d);
+//    Serial_PrintHex(interfaceId, (uint8_t*)&mDeviceLongAddress, 8, 0);
     Serial_Print(interfaceId, "  Short Address: " , gAllowToBlock_d);
     Serial_PrintHex(interfaceId, (uint8_t*)&(pMsgIn->msgData.dataInd.srcAddr), 2, 0);
     Serial_Print(interfaceId, "  LQI: " , gAllowToBlock_d);
