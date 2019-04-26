@@ -90,7 +90,9 @@ static uint8_t App_StartCoordinator( uint8_t appInstance );
 static uint8_t App_HandleMlmeInput(nwkMessage_t *pMsg, uint8_t appInstance);
 static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstance);
 static void    App_HandleMcpsInput(mcpsToNwkMessage_t *pMsgIn, uint8_t appInstance);
+static void    Print_Counter(mcpsToNwkMessage_t *pMsgIn );
 static void    App_TransmitUartData(void);
+static void    App_TransmitData(nwkMessage_t *pMsgIn);
 static uint8_t App_WaitMsg(nwkMessage_t *pMsg, uint8_t msgType);
 static void    App_HandleKeys(uint8_t events);
 
@@ -123,9 +125,11 @@ static uint8_t mLogicalChannel;
    devices long and short addresses. */
 static uint16_t mDeviceShortAddress = 0xFFFF;
 static uint64_t mDeviceLongAddress = 0xFFFFFFFFFFFFFFFF;
+static uint64_t addr;
 
 /* Data request packet for sending UART input to the coordinator */
 static nwkToMcpsMessage_t *mpPacket;
+static nwkToMcpsMessage_t *mpPacket2;
 
 /* The MSDU handle is a unique data packet identifier */
 static uint8_t mMsduHandle;
@@ -160,6 +164,8 @@ volatile uint8_t index_found = 0;
 volatile uint8_t flag_found = 0;
 
 volatile uint8_t higherNode = 0;
+
+volatile uint8_t flag_deviceType = 0;
 /************************************************************************************
 *************************************************************************************
 * Public memory declarations
@@ -274,6 +280,7 @@ void AppThread(uint32_t argument)
     void *pMsgIn;
     /* Stores the status code returned by some functions. */
     uint8_t ret;
+    mcpsToNwkMessage_t **pMsgIn2;
 
     while(1)
     {
@@ -428,6 +435,12 @@ void AppThread(uint32_t argument)
           if (pMsgIn)
           {
               /* Process it */
+        	  pMsgIn2 = &pMsgIn;
+        	  if((*pMsgIn2)->msgType == gMcpsDataInd_c)
+//        	  if((*pMsgIn2)->msgType == gMcpsDataInd_c)
+        	  {
+					App_TransmitData(pMsgIn);
+        	  }
               App_HandleMcpsInput(pMsgIn, 0);
               /* Messages from the MCPS must always be freed. */
               MSG_Free(pMsgIn);
@@ -828,6 +841,22 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
     
 	nodo[ mDeviceShortAddress -1].shortAddress = mDeviceShortAddress;
 	nodo[ mDeviceShortAddress -1].extendedAddress = mDeviceLongAddress;
+	if(pMsgIn->msgData.associateInd.capabilityInfo & gCapInfoRxWhenIdle_c)
+	{
+		nodo[ mDeviceShortAddress -1].rxOnWhenIdle = 1;
+	}
+	else
+	{
+    	nodo[ mDeviceShortAddress -1].rxOnWhenIdle = 0;
+	}
+    if(pMsgIn->msgData.associateInd.capabilityInfo & gCapInfoDeviceFfd_c)
+    {
+    	nodo[ mDeviceShortAddress -1].deviceType = 1;
+    }
+    else
+    {
+    	nodo[ mDeviceShortAddress -1].deviceType = 0;
+    }
 
 	Serial_Print(interfaceId, "\n\rLAST ASSOCIATED NODE  extended Addr: ", gAllowToBlock_d);
 	Serial_PrintHex(interfaceId, (uint8_t*) &mDeviceLongAddress, 8, 0);
@@ -908,39 +937,40 @@ static void App_HandleMcpsInput(mcpsToNwkMessage_t *pMsgIn, uint8_t appInstance)
     break;
 
   case gMcpsDataInd_c:
+
+//	addr = &pMsgIn->msgData.dataInd.srcAddr;
+	FLib_MemCpy(&addr, &pMsgIn->msgData.dataInd.srcAddr, 2);
     /* The MCPS-Data indication is sent by the MAC to the network
        or application layer when data has been received. We simply
        copy the received data to the UART. */
     Serial_SyncWrite( interfaceId,pMsgIn->msgData.dataInd.pMsdu, pMsgIn->msgData.dataInd.msduLength );
+
 //    Serial_Print(interfaceId, "  MAC Address: " , gAllowToBlock_d);
 //    Serial_PrintHex(interfaceId, (uint8_t*)&mDeviceLongAddress, 8, 0);
-    Serial_Print(interfaceId, "  Short Address: " , gAllowToBlock_d);
-    Serial_PrintHex(interfaceId, (uint8_t*)&(pMsgIn->msgData.dataInd.srcAddr), 2, 0);
-    Serial_Print(interfaceId, "  LQI: " , gAllowToBlock_d);
-    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.mpduLinkQuality);
-    Serial_Print(interfaceId, "  Payload Length: " , gAllowToBlock_d);
-    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.msduLength);
-    //    Serial_Print(interfaceId, "\n\r" , gAllowToBlock_d);
-    //    Serial_SyncWrite( interfaceId,&pMsgIn->msgData.dataInd.pMsdu[10], 1 );
+
     if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x31)
     {
     	TurnOffLeds();
     	Led1On();
+    	Print_Counter(pMsgIn);
     }
     if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x32)
     {
     	TurnOffLeds();
     	Led2On();
+    	Print_Counter(pMsgIn);
     }
     if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x33)
     {
     	TurnOffLeds();
     	Led3On();
+    	Print_Counter(pMsgIn);
     }
     if (pMsgIn->msgData.dataInd.pMsdu[10] == 0x34)
     {
     	TurnOffLeds();
     	Led4On();
+    	Print_Counter(pMsgIn);
     }
     break;
     
@@ -949,6 +979,17 @@ static void App_HandleMcpsInput(mcpsToNwkMessage_t *pMsgIn, uint8_t appInstance)
   }
 }
 
+static void Print_Counter(mcpsToNwkMessage_t *pMsgIn )
+{
+    Serial_Print(interfaceId, "  Short Address: "  , gAllowToBlock_d);
+    Serial_PrintHex(interfaceId, (uint8_t*)&(pMsgIn->msgData.dataInd.srcAddr), 2, 0);
+    Serial_Print(interfaceId, "  LQI: "            , gAllowToBlock_d);
+    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.mpduLinkQuality);
+    Serial_Print(interfaceId, "  Payload Length: " , gAllowToBlock_d);
+    Serial_PrintDec(interfaceId, pMsgIn->msgData.dataInd.msduLength);
+    //    Serial_Print(interfaceId, "\n\r" , gAllowToBlock_d);
+    //    Serial_SyncWrite( interfaceId,&pMsgIn->msgData.dataInd.pMsdu[10], 1 );
+}
 /******************************************************************************
 * The App_WaitMsg(nwkMessage_t *pMsg, uint8_t msgType) function does not, as
 * the name implies, wait for a message, thus blocking the execution of the
@@ -1065,7 +1106,61 @@ static void App_TransmitUartData(void)
     }
 }
 
+static void App_TransmitData(nwkMessage_t *pMsgIn)
+{
+	uint8_t pck[] = "\n\rAPP_ACK\n\r";
+    /* Use multi buffering for increased TX performance. It does not really
+    have any effect at low UART baud rates, but serves as an
+    example of how the throughput may be improved in a real-world
+    application where the data rate is of concern. */
+    if( (mpPacket2 == NULL) )
+    {
+        /* If the maximum number of pending data buffes is below maximum limit
+        and we do not have a data buffer already then allocate one. */
+        mpPacket2 = MSG_Alloc(sizeof(nwkToMcpsMessage_t) + gMaxPHYPacketSize_c);
+    }
 
+    if(mpPacket2 != NULL)
+    {
+        /* Create an MCPS-Data Request message containing the data. */
+        mpPacket2->msgType = gMcpsDataReq_c;
+        mpPacket2->msgData.dataReq.pMsdu = (uint8_t*)(&mpPacket2->msgData.dataReq.pMsdu) +
+                                          sizeof(mpPacket2->msgData.dataReq.pMsdu);
+        FLib_MemCpy(mpPacket2->msgData.dataReq.pMsdu, pck, sizeof(pck));
+        /* Create the header using device information stored when creating
+        the association response. In this simple example the use of short
+        addresses is hardcoded. In a real world application we must be
+        flexible, and use the address mode required by the given situation. */
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.dstAddr, (void*)&addr, 2);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.srcAddr, (void*)&mShortAddress, 2);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.dstPanId, (void*)&mPanId, 2);
+        FLib_MemCpy(&mpPacket2->msgData.dataReq.srcPanId, (void*)&mPanId, 2);
+        mpPacket2->msgData.dataReq.dstAddrMode = gAddrModeShortAddress_c;
+        mpPacket2->msgData.dataReq.srcAddrMode = gAddrModeShortAddress_c;
+        mpPacket2->msgData.dataReq.msduLength = sizeof(pck);
+        /* Request MAC level acknowledgement, and
+        indirect transmission of the data packet */
+        mpPacket2->msgData.dataReq.txOptions = gMacTxOptionsAck_c;
+        /*Check if device is FFD*/
+        if ( 0 == (pMsgIn->msgData.associateInd.capabilityInfo & gCapInfoDeviceFfd_c) )
+        {
+        	mpPacket2->msgData.dataReq.txOptions |= gMacTxOptionIndirect_c;
+		}
+
+        /* Give the data packet a handle. The handle is
+        returned in the MCPS-Data Confirm message. */
+        mpPacket2->msgData.dataReq.msduHandle = mMsduHandle++;
+        /* Don't use security */
+        mpPacket2->msgData.dataReq.securityLevel = gMacSecurityNone_c;
+
+        /* Send the Data Request to the MCPS */
+        (void)NWK_MCPS_SapHandler(mpPacket2, macInstance);
+
+        /* Prepare for another data buffer */
+        mpPacket2 = NULL;
+    }
+
+}
 /*****************************************************************************
 * Handles all key events for this device.
 * Interface assumptions: None

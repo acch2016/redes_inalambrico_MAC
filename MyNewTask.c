@@ -79,7 +79,7 @@ void MyTask_Init(void)
 }
 
 /* This is the function called by the Timer each time it expires */
-static void myTaskTimerCallback(void*param)
+void myTaskTimerCallback(void*param)
 {
 	OSA_EventSet(mMyEvents, gMyNewTaskEvent2_c);
 }
