@@ -865,8 +865,6 @@ static uint8_t App_SendAssociateResponse(nwkMessage_t *pMsgIn, uint8_t appInstan
 	Serial_Print(interfaceId, "  node: ", gAllowToBlock_d);
 	Serial_PrintDec(interfaceId, higherNode);
 
-//    counter++; TODO necessary?
-
     /* Send the Associate Response to the MLME. */
     if( gSuccess_c == NWK_MLME_SapHandler( pMsg, macInstance ) )
     {
