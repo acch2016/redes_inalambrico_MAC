@@ -96,6 +96,7 @@
   #define mAddrMode_ID_c           0x0012
 #endif
 
+#define FFD
 /************************************************************************************
 *************************************************************************************
 * Private prototypes
@@ -368,6 +369,7 @@ void App_init( void )
     if (!PWRLib_MCU_WakeupReason.Bits.DeepSleepTimeout)
     {
 #endif
+    	Serial_Print(interfaceId, "\n\r  --------  EndDevice  -------- 0xFFFFFFFFFFFFFFFF\n\r", gAllowToBlock_d);
         Serial_Print(interfaceId, "\n\rPress any switch on board to start running the application.\n\r", gAllowToBlock_d);  
 #if gNvmTestActive_d
         Serial_Print(interfaceId, "Long press switch_1 on board to use MAC data restore from NVM.\n\r", gAllowToBlock_d);  
@@ -586,6 +588,15 @@ void AppThread(osaTaskParam_t argument)
                             TMR_StartLowPowerTimer(mTimer_c, gTmrSingleShotTimer_c ,mPollInterval, AppPollWaitTimeout, NULL );
                             /* Go to the listen state */
                             gState = stateListen;
+#ifdef FFD
+                            //TODO change MAC address
+                            uint8_t value1 = 1;
+                            mlmeMessage_t msg;
+                            msg.msgType = gMlmeSetReq_c;
+                            msg.msgData.setReq.pibAttribute = gMPibRxOnWhenIdle_c;
+                            msg.msgData.setReq.pibAttributeValue = (uint8_t *)&value1;
+                            (void)NWK_MLME_SapHandler( &msg, 0 );
+#endif
                             OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c); 
                         }        
                         else 
@@ -884,7 +895,10 @@ static uint8_t App_SendAssociateRequest(void)
 
     /* We want the coordinator to assign a short address to us. */
     pAssocReq->capabilityInfo     = gCapInfoAllocAddr_c;
-      
+#ifdef FFD
+    pAssocReq->capabilityInfo    |= gCapInfoRxWhenIdle_c;
+    pAssocReq->capabilityInfo    |= gCapInfoDeviceFfd_c;
+#endif
     /* Send the Associate Request to the MLME. */
     if(NWK_MLME_SapHandler( pMsg, macInstance ) == gSuccess_c)
     {
@@ -1297,11 +1311,11 @@ static void App_HandleKeys
     case gKBD_EventLongSW6_c:       
 #endif
     }
-        if(gState == stateInit)
-        {
-            LED_StopFlashingAllLeds();
-            OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c);
-        }
+	if (gState == stateInit)
+	{
+		LED_StopFlashingAllLeds();
+		OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c);
+	}
 #endif
 }
 

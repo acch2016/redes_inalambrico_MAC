@@ -9,6 +9,7 @@
 
 #define gMyTaskPriority_c 3
 #define gMyTaskStackSize_c 400
+#define TIMEOUT 3000
 static uint8_t interfaceId;
 osaEventId_t mMyEvents;
 /* Global Variable to store our TimerID */
@@ -41,7 +42,7 @@ void My_Task(osaTaskParam_t argument)
 		{
 		case gMyNewTaskEvent1_c:
 			TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
-					1000, /* Timer's Timeout */ //TODO 3000
+					TIMEOUT, /* Timer's Timeout */
 					myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
 					NULL
 					);
@@ -95,7 +96,7 @@ void My_Task(osaTaskParam_t argument)
 				App_TransmitData(ledsState);
 				ledsState = 2;
 				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
-						1000, /* Timer's Timeout */ //TODO 3000
+						TIMEOUT, /* Timer's Timeout */
 						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
 						NULL
 						);
@@ -108,7 +109,7 @@ void My_Task(osaTaskParam_t argument)
 				App_TransmitData(ledsState);
 				ledsState = 3;
 				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
-						1000, /* Timer's Timeout */ //TODO 3000
+						TIMEOUT, /* Timer's Timeout */
 						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
 						NULL
 						);
@@ -121,7 +122,7 @@ void My_Task(osaTaskParam_t argument)
 				App_TransmitData(ledsState);
 				ledsState = 4;
 				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
-						1000, /* Timer's Timeout */ //TODO 3000
+						TIMEOUT, /* Timer's Timeout */
 						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
 						NULL
 						);
@@ -134,7 +135,7 @@ void My_Task(osaTaskParam_t argument)
 				App_TransmitData(ledsState);
 				ledsState = 1;
 				TMR_StartIntervalTimer(myTimerID, /*myTimerID*/
-						1000, /* Timer's Timeout */ //TODO 3000
+						TIMEOUT, /* Timer's Timeout */
 						myTaskTimerCallback, /* pointer to myTaskTimerCallback function */
 						NULL
 						);
